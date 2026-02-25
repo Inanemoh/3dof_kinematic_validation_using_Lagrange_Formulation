@@ -1,0 +1,78 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Constants
+m1, m2, m3 = 1.0, 1.0, 1.0  # Mass of each link (kg)
+l1, l2, l3 = 1.0, 1.0, 1.0  # Length of each link (m)
+g = 9.81                   # Gravitational acceleration (m/s^2)
+
+# Time vector
+T = np.linspace(0, 10, 500)  # 500 time steps over 10 seconds
+
+# --- Trajectory Set 1: Sine-based motions
+theta1_1 = np.sin(0.5 * T)
+theta2_1 = np.sin(0.5 * T + np.pi/6)
+theta3_1 = np.sin(0.5 * T + np.pi/3)
+
+dtheta1_1 = np.gradient(theta1_1, T)
+dtheta2_1 = np.gradient(theta2_1, T)
+dtheta3_1 = np.gradient(theta3_1, T)
+
+ddtheta1_1 = np.gradient(dtheta1_1, T)
+ddtheta2_1 = np.gradient(dtheta2_1, T)
+ddtheta3_1 = np.gradient(dtheta3_1, T)
+
+# Torques for Trajectory 1
+tau1_1 = m1 * l1**2 * ddtheta1_1 + m1 * g * l1 * np.cos(theta1_1)
+tau2_1 = m2 * l2**2 * ddtheta2_1 + m2 * g * l2 * np.cos(theta1_1 + theta2_1)
+tau3_1 = m3 * l3**2 * ddtheta3_1 + m3 * g * l3 * np.cos(theta1_1 + theta2_1 + theta3_1)
+
+# --- Trajectory Set 2: Cosine-based motions (Different pattern)
+theta1_2 = np.cos(0.7 * T)
+theta2_2 = np.cos(0.7 * T + np.pi/4)
+theta3_2 = np.cos(0.7 * T + np.pi/2)
+
+dtheta1_2 = np.gradient(theta1_2, T)
+dtheta2_2 = np.gradient(theta2_2, T)
+dtheta3_2 = np.gradient(theta3_2, T)
+
+ddtheta1_2 = np.gradient(dtheta1_2, T)
+ddtheta2_2 = np.gradient(dtheta2_2, T)
+ddtheta3_2 = np.gradient(dtheta3_2, T)
+
+# Torques for Trajectory 2
+tau1_2 = m1 * l1**2 * ddtheta1_2 + m1 * g * l1 * np.cos(theta1_2)
+tau2_2 = m2 * l2**2 * ddtheta2_2 + m2 * g * l2 * np.cos(theta1_2 + theta2_2)
+tau3_2 = m3 * l3**2 * ddtheta3_2 + m3 * g * l3 * np.cos(theta1_2 + theta2_2 + theta3_2)
+
+# --- Plot comparison of torques for both trajectories
+plt.figure(figsize=(14, 8))
+
+# Torque τ1 comparison
+plt.subplot(3, 1, 1)
+plt.plot(T, tau1_1, label='Torque τ1 - Trajectory 1')
+plt.plot(T, tau1_2, label='Torque τ1 - Trajectory 2', linestyle='--')
+plt.ylabel("Torque τ1 (Nm)")
+plt.legend()
+plt.grid(True)
+
+# Torque τ2 comparison
+plt.subplot(3, 1, 2)
+plt.plot(T, tau2_1, label='Torque τ2 - Trajectory 1')
+plt.plot(T, tau2_2, label='Torque τ2 - Trajectory 2', linestyle='--')
+plt.ylabel("Torque τ2 (Nm)")
+plt.legend()
+plt.grid(True)
+
+# Torque τ3 comparison
+plt.subplot(3, 1, 3)
+plt.plot(T, tau3_1, label='Torque τ3 - Trajectory 1')
+plt.plot(T, tau3_2, label='Torque τ3 - Trajectory 2', linestyle='--')
+plt.xlabel("Time (s)")
+plt.ylabel("Torque τ3 (Nm)")
+plt.legend()
+plt.grid(True)
+
+plt.suptitle("Comparison of Joint Torques under Two Simulated Trajectories", fontsize=14)
+plt.tight_layout()
+plt.show()
