@@ -1,0 +1,56 @@
+APPENDIX A2
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Physical parameters of the 3-link manipulator
+m1, m2, m3 = 1.0, 1.0, 1.0     # masses of the links (kg)
+l1, l2, l3 = 1.0, 1.0, 1.0     # lengths of the links (m)
+g = 9.81                      # gravitational acceleration (m/s^2)
+
+# Time simulation setup
+T = np.linspace(0, 10, 500)    # time vector from 0 to 10 seconds
+
+# Simulated joint angles (θ₁, θ₂, θ₃) as sinusoidal trajectories
+theta1 = np.sin(0.5 * T)
+theta2 = np.sin(0.5 * T + np.pi / 6)
+theta3 = np.sin(0.5 * T + np.pi / 3)
+
+# First derivatives (angular velocities)
+dtheta1 = np.gradient(theta1, T)
+dtheta2 = np.gradient(theta2, T)
+dtheta3 = np.gradient(theta3, T)
+
+# Second derivatives (angular accelerations)
+ddtheta1 = np.gradient(dtheta1, T)
+ddtheta2 = np.gradient(dtheta2, T)
+ddtheta3 = np.gradient(dtheta3, T)
+
+# Torques at each joint using simplified Lagrangian model
+tau1 = m1 * l1**2 * ddtheta1 + m1 * g * l1 * np.cos(theta1)
+tau2 = m2 * l2**2 * ddtheta2 + m2 * g * l2 * np.cos(theta1 + theta2)
+tau3 = m3 * l3**2 * ddtheta3 + m3 * g * l3 * np.cos(theta1 + theta2 + theta3)
+
+# Plotting joint angles
+plt.figure(figsize=(10, 5))
+plt.plot(T, theta1, label='θ₁(t)')
+plt.plot(T, theta2, label='θ₂(t)')
+plt.plot(T, theta3, label='θ₃(t)')
+plt.title("Simulated Joint Angles Over Time")
+plt.xlabel("Time (s)")
+plt.ylabel("Angle (radians)")
+plt.legend()
+plt.grid(True)
+plt.show()
+
+# Plotting torques
+plt.figure(figsize=(10, 5))
+plt.plot(T, tau1, label='τ₁(t)')
+plt.plot(T, tau2, label='τ₂(t)')
+plt.plot(T, tau3, label='τ₃(t)')
+plt.title("Simulated Joint Torques Using Lagrange Formulation")
+plt.xlabel("Time (s)")
+plt.ylabel("Torque (Nm)")
+plt.legend()
+plt.grid(True)
+plt.show()
+
