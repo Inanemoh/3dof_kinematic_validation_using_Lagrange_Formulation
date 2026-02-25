@@ -1,0 +1,136 @@
+APPENDIX A1
+Simulate the 3-link manipulator’s dynamics using the Lagrange formulation.
+# === PART 1: SYMBOLIC LAGRANGE DERIVATION ===
+import sympy as sp
+import numpy as np
+from scipy.integrate import solve_ivp
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+from matplotlib.animation import PillowWriter
+import IPython.display
+
+# Define symbolic variables
+th1, th2, th3 = sp.symbols('th1 th2 th3')      # joint angles
+w1, w2, w3 = sp.symbols('w1 w2 w3')            # angular velocities
+l1, l2, l3 = sp.symbols('l1 l2 l3')            # link lengths
+m1, m2, m3 = sp.symbols('m1 m2 m3')            # link masses
+g = sp.symbols('g')                            # gravity
+
+# COM positions
+x1 = (l1/2)*sp.cos(th1)
+y1 = (l1/2)*sp.sin(th1)
+
+x2 = l1*sp.cos(th1) + (l2/2)*sp.cos(th1 + th2)
+y2 = l1*sp.sin(th1) + (l2/2)*sp.sin(th1 + th2)
+
+x3 = l1*sp.cos(th1) + l2*sp.cos(th1 + th2) + (l3/2)*sp.cos(th1 + th2 + th3)
+y3 = l1*sp.sin(th1) + l2*sp.sin(th1 + th2) + (l3/2)*sp.sin(th1 + th2 + th3)
+
+# Velocities (manually derived)
+vx1 = -w1 * (l1/2)*sp.sin(th1)
+vy1 =  w1 * (l1/2)*sp.cos(th1)
+
+vx2 = -w1*l1*sp.sin(th1) - (w1+w2)*(l2/2)*sp.sin(th1 + th2)
+vy2 =  w1*l1*sp.cos(th1) + (w1+w2)*(l2/2)*sp.cos(th1 + th2)
+
+vx3 = (-w1*l1*sp.sin(th1)
+- (w1+w2)*l2*sp.sin(th1 + th2)
+- (w1+w2+w3)*(l3/2)*sp.sin(th1 + th2 + th3))
+vy3 = ( w1*l1*sp.cos(th1)
++ (w1+w2)*l2*sp.cos(th1 + th2)
++ (w1+w2+w3)*(l3/2)*sp.cos(th1 + th2 + th3))
+
+# Kinetic energy
+T = (1/2)*m1*(vx1**2 + vy1**2) + (1/2)*m2*(vx2**2 + vy2**2) + (1/2)*m3*(vx3**2 + vy3**2)
+
+# Potential energy
+V = m1*g*y1 + m2*g*y2 + m3*g*y3
+
+# Lagrangian
+L = T - V
+
+# Generalized coordinates
+q = [th1, th2, th3]
+qd = [w1, w2, w3]
+
+# Torques: tau = -∂L/∂θ (manually simplified version)
+tau = [sp.simplify(-sp.diff(L, qi)) for qi in q]
+
+# Lambdify the torques
+params = (th1, th2, th3, w1, w2, w3, l1, l2, l3, m1, m2, m3, g)
+tau_funcs = [sp.lambdify(params, t_expr, 'numpy') for t_expr in tau]
+
+# === PART 2: NUMERICAL SIMULATION ===
+# Constants
+L1 = L2 = L3 = 1.0
+M1 = M2 = M3 = 1.0
+G = 9.81
+
+def dynamics(t, y):
+th1, th2, th3, w1, w2, w3 = y
+args = (th1, th2, th3, w1, w2, w3, L1, L2, L3, M1, M2, M3, G)
+a1 = tau_funcs[0](*args)
+a2 = tau_funcs[1](*args)
+a3 = tau_funcs[2](*args)
+return [w1, w2, w3, a1, a2, a3]
+
+# Initial conditions
+y0 = [np.pi/6, -np.pi/6, np.pi/4, 0, 0, 0]
+t_span = (0, 10)
+t_eval = np.linspace(*t_span, 500)
+
+# Solve the ODE
+sol = solve_ivp(dynamics, t_span, y0, t_eval=t_eval)
+theta1, theta2, theta3 = sol.y[0], sol.y[1], sol.y[2]
+
+# === PART 3: PLOT JOINT ANGLES ===
+plt.figure(figsize=(10, 6))
+plt.plot(t_eval, theta1, label="θ1 (Link 1)", color='blue')
+plt.plot(t_eval, theta2, label="θ2 (Link 2)", color='green')
+plt.plot(t_eval, theta3, label="θ3 (Link 3)", color='red')
+plt.xlabel("Time (s)")
+plt.ylabel("Angle (rad)")
+plt.title("Joint Angles Over Time")
+plt.grid(True)
+plt.legend()
+plt.tight_layout()
+plt.show()
+
+# === PART 4: ANIMATE THE MANIPULATOR ===
+# Forward kinematics for animation
+x1 = L1 * np.cos(theta1)
+y1 = L1 * np.sin(theta1)
+x2 = x1 + L2 * np.cos(theta1 + theta2)
+y2 = y1 + L2 * np.sin(theta1 + theta2)
+x3 = x2 + L3 * np.cos(theta1 + theta2 + theta3)
+y3 = y2 + L3 * np.sin(theta1 + theta2 + theta3)
+
+# Set up animation plot
+fig, ax = plt.subplots()
+ax.set_xlim(-3.5, 3.5)
+ax.set_ylim(-3.5, 3.5)
+ax.set_aspect('equal')
+line, = ax.plot([], [], 'o-', lw=3)
+time_text = ax.text(0.02, 0.95, '', transform=ax.transAxes)
+
+
+def update(frame):
+thisx = [0, x1[frame], x2[frame], x3[frame]]
+thisy = [0, y1[frame], y2[frame], y3[frame]]
+line.set_data(thisx, thisy)
+time_text.set_text(f"t = {t_eval[frame]:.2f}s")
+return line, time_text
+
+ani = FuncAnimation(fig, update, frames=len(t_eval), interval=30)
+
+# Display the animation in the notebook output
+display(IPython.display.HTML(ani.to_jshtml()))
+
+plt.title("3-Link Manipulator Animation")
+plt.xlabel("X")
+plt.ylabel("Y")
+plt.grid()
+plt.show()
+
+# Save the animation as a GIF (optional)
+# ani.save("manipulator.gif", writer=PillowWriter(fps=30))
