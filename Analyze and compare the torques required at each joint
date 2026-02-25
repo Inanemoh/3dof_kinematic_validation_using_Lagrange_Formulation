@@ -1,0 +1,50 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.integrate import solve_ivp
+
+# Physical parameters
+m1, m2, m3 = 1.0, 1.0, 1.0      # Masses (kg)
+l1, l2, l3 = 1.0, 1.0, 1.0      # Link lengths (m)
+lc1, lc2, lc3 = 0.5, 0.5, 0.5   # Distance to center of mass (m)
+I1, I2, I3 = 0.1, 0.1, 0.1      # Moments of inertia
+g = 9.81                        # Gravity (m/s^2)
+
+# Function to compute dynamics
+def lagrange_dynamics(t, y):
+theta1, theta2, theta3 = y[0:3]
+dtheta1, dtheta2, dtheta3 = y[3:6]
+
+# Second derivatives (torques using a simplified model)
+ddtheta1 = (-g * (m1 * lc1 * np.sin(theta1) + m2 * (l1 * np.sin(theta1) + lc2 * np.sin(theta1 + theta2)) +
+m3 * (l1 * np.sin(theta1) + l2 * np.sin(theta1 + theta2) + lc3 * np.sin(theta1 + theta2 + theta3)))) / I1
+ddtheta2 = (-g * (m2 * lc2 * np.sin(theta1 + theta2) + m3 * (l2 * np.sin(theta1 + theta2) + lc3 * np.sin(theta1 + theta2 + theta3)))) / I2
+ddtheta3 = (-g * m3 * lc3 * np.sin(theta1 + theta2 + theta3)) / I3
+
+return [dtheta1, dtheta2, dtheta3, ddtheta1, ddtheta2, ddtheta3]
+
+# Initial state: [theta1, theta2, theta3, dtheta1, dtheta2, dtheta3]
+y0 = [0.1, 0.1, 0.1, 0.0, 0.0, 0.0]
+
+# Time span
+t_span = (0, 10)
+t_eval = np.linspace(*t_span, 500)
+
+# Solve using numerical integration
+sol = solve_ivp(lagrange_dynamics, t_span, y0, t_eval=t_eval)
+
+# Extract results
+theta1_vals, theta2_vals, theta3_vals = sol.y[0], sol.y[1], sol.y[2]
+
+# Plot joint angles
+plt.figure(figsize=(10, 6))
+plt.plot(t_eval, theta1_vals, label="θ1")
+plt.plot(t_eval, theta2_vals, label="θ2")
+plt.plot(t_eval, theta3_vals, label="θ3")
+plt.title("Joint Angles Over Time (Simulated using Lagrangian Equations)")
+plt.xlabel("Time (s)")
+plt.ylabel("Joint Angle (rad)")
+plt.grid(True)
+plt.legend()
+plt.tight_layout()
+plt.show()
+
